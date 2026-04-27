@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+# Capture the EC2 private IP before Tailscale adds a second private interface.
+# Consul/Nomad require an unambiguous bind address when multiple private IPs exist.
+PRIVATE_IP=$(curl -sf http://169.254.169.254/latest/meta-data/local-ipv4)
+INSTANCE_ID=$(curl -sf http://169.254.169.254/latest/meta-data/instance-id)
+NODE_NAME="ns-$${INSTANCE_ID}"
+
+cat <<EOF > /etc/consul.d/consul.hcl
+datacenter = "${datacenter}"
+node_name  = "consul-client-$NODE_NAME"
+data_dir   = "/opt/consul"
+bind_addr  = "$PRIVATE_IP"
+server     = false
+retry_join = ${consul_retry_join}
+EOF
+
+cat <<EOF > /etc/nomad.d/nomad.hcl
+datacenter = "${datacenter}"
+name       = "$NODE_NAME"
+data_dir   = "/opt/nomad"
+bind_addr  = "$PRIVATE_IP"
+
+addresses {
+  http = "0.0.0.0"
+}
+
+server {
+  enabled          = true
+  bootstrap_expect = ${bootstrap_expect}
+}
+
+ui {
+  enabled = true
+}
+
+telemetry {
+  publish_allocation_metrics = true
+  publish_node_metrics       = true
+  prometheus_metrics          = true
+}
+
+consul {
+  address = "127.0.0.1:8500"
+}
+EOF
+
+sudo tailscale up --authkey="${ts_key}" --hostname="$NODE_NAME-${datacenter}" --ssh
+
+# bind_addr is pinned to PRIVATE_IP so Tailscale's extra interface is not a problem.
+systemctl enable consul nomad
+systemctl start consul
+systemctl start nomad

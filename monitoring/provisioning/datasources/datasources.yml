@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  # Replace <NOMAD_CLIENT_TAILSCALE_IP> with the Tailscale IP of any
+  # Nomad client running the Prometheus job in us-east-1.
+  # Find it with: tailscale status | grep nomad-client
+  - name: Prometheus (us-east-1)
+    type: prometheus
+    access: proxy
+    url: http://host.docker.internal:9090
+    isDefault: true
+    editable: true
+
+  # Uncomment when you add a second region:
+  # - name: Prometheus (eu-west-1)
+  #   type: prometheus
+  #   access: proxy
+  #   url: http://<EU_NOMAD_CLIENT_TAILSCALE_IP>:9090
+  #   editable: true
