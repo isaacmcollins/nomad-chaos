@@ -26,7 +26,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&nomadAddr, "nomad-addr", envOrDefault("NOMAD_ADDR", "http://127.0.0.1:4646"), "Nomad API address")
 	rootCmd.PersistentFlags().StringVar(&consulAddr, "consul-addr", envOrDefault("CONSUL_ADDR", "http://127.0.0.1:8500"), "Consul API address")
-	rootCmd.PersistentFlags().StringVar(&grafanaURL, "grafana-url", envOrDefault("GRAFANA_URL", "http://127.0.0.1:3000"), "Grafana URL for annotations")
+	rootCmd.PersistentFlags().StringVar(&grafanaURL, "grafana-url", envOrDefault("GRAFANA_URL", "http://localhost:3000"), "Grafana URL for annotations")
 	rootCmd.PersistentFlags().StringVar(&appURL, "app-url", envOrDefault("APP_URL", "http://localhost:8080"), "Test application URL")
 }
 

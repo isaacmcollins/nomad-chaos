@@ -20,7 +20,10 @@ ui_config {
   enabled = true
 }
 
-retry_join = ${retry_join}
+retry_join     = ${retry_join}
+%{ if length(jsondecode(retry_join_wan)) > 0 ~}
+retry_join_wan = ${retry_join_wan}
+%{ endif ~}
 EOF
 
 sudo tailscale up --authkey="${ts_key}" --hostname="$NODE_NAME-${datacenter}" --ssh

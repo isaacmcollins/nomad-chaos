@@ -31,6 +31,12 @@ server {
   bootstrap_expect = ${bootstrap_expect}
 }
 
+%{ if peer_datacenter != "" ~}
+server_join {
+  retry_join = ${nomad_wan_join}
+}
+
+%{ endif ~}
 ui {
   enabled = true
 }

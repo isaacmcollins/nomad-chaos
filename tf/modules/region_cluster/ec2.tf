@@ -10,7 +10,6 @@ data "aws_ami" "cluster" {
 
 data "aws_region" "current" {}
 
-
 # for auto join
 resource "aws_iam_role" "cluster" {
   name = "nomad-chaos-cluster-${local.datacenter}"
@@ -47,6 +46,8 @@ resource "aws_iam_instance_profile" "cluster" {
 locals {
   datacenter             = data.aws_region.current.name
   consul_cloud_auto_join = ["provider=aws tag_key=ConsulCluster tag_value=${local.datacenter} region=${local.datacenter}"]
+  consul_wan_join        = var.peer_datacenter != "" ? jsonencode(["provider=aws tag_key=Role tag_value=consul-server region=${var.peer_datacenter}"]) : jsonencode([])
+  nomad_wan_join_list    = var.peer_datacenter != "" ? ["provider=aws tag_key=Role tag_value=nomad-server region=${var.peer_datacenter}"] : []
 }
 
 # =============================================================================
@@ -75,6 +76,7 @@ resource "aws_launch_template" "consul_server" {
     datacenter       = local.datacenter
     bootstrap_expect = var.consul_server_count
     retry_join       = jsonencode(local.consul_cloud_auto_join)
+    retry_join_wan   = local.consul_wan_join
     ts_key           = var.tailscale_key
   }))
 
@@ -113,6 +115,8 @@ resource "aws_launch_template" "nomad_server" {
     datacenter        = local.datacenter
     bootstrap_expect  = var.nomad_server_count
     consul_retry_join = jsonencode(local.consul_cloud_auto_join)
+    peer_datacenter   = var.peer_datacenter
+    nomad_wan_join    = jsonencode(local.nomad_wan_join_list)
     ts_key            = var.tailscale_key
   }))
 

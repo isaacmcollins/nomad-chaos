@@ -8,9 +8,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/isaaccollins/nomad-chaos/chaos/pkg/grafana"
 	"github.com/isaaccollins/nomad-chaos/chaos/pkg/nomad"
 	"github.com/spf13/cobra"
 )
+
+func newGrafana() *grafana.Client {
+	return grafana.NewClient(grafanaURL)
+}
+
+func annotateExperiment(name string) func() {
+	gc := newGrafana()
+	if err := gc.StartExperiment(name); err != nil {
+		fmt.Printf("Warning: grafana annotation failed: %v\n", err)
+	}
+	return func() {
+		if err := gc.EndExperiment(name); err != nil {
+			fmt.Printf("Warning: grafana annotation failed: %v\n", err)
+		}
+	}
+}
 
 var runCmd = &cobra.Command{
 	Use:   "run <experiment>",
@@ -31,6 +48,8 @@ var appFailCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("invalid duration: %w", err)
 		}
+
+		defer annotateExperiment("app-fail")()
 
 		params := url.Values{}
 		params.Set("rate", strconv.Itoa(appFailRate))
@@ -74,6 +93,8 @@ var appSlowCmd = &cobra.Command{
 			return fmt.Errorf("invalid duration: %w", err)
 		}
 
+		defer annotateExperiment("app-slow")()
+
 		params := url.Values{}
 		params.Set("delay", strconv.Itoa(appSlowDelay))
 
@@ -105,6 +126,7 @@ var killAllocCmd = &cobra.Command{
 	Use:   "kill-alloc",
 	Short: "Kill Nomad allocations for a job",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defer annotateExperiment("kill-alloc")()
 		return killAllocations(nomadAddr, killAllocJob, killAllocCount)
 	},
 }
@@ -127,6 +149,8 @@ var killLoopCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Running kill-loop: job=%s interval=%s duration=%s\n", killLoopJob, killLoopInterval, killLoopDuration)
+
+		defer annotateExperiment("kill-loop")()
 
 		if err := killAllocations(nomadAddr, killLoopJob, 1); err != nil {
 			fmt.Printf("Warning: %v\n", err)

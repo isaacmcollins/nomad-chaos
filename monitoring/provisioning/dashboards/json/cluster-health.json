@@ -1,5 +1,32 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": false,
+        "iconColor": "red",
+        "name": "Chaos Experiments",
+        "type": "dashboard",
+        "filter": {
+          "exclude": false,
+          "ids": []
+        }
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "" },
+        "enable": true,
+        "expr": "",
+        "hide": false,
+        "iconColor": "red",
+        "name": "Chaos (Grafana API)",
+        "type": "tags",
+        "tags": ["chaos"],
+        "matchAny": false
+      }
+    ]
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

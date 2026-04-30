@@ -23,6 +23,12 @@ variable "consul_server_count" {
 }
 
 variable "tailscale_key" {
-  type = string
+  type      = string
   sensitive = true
+}
+
+variable "peer_datacenter" {
+  type        = string
+  default     = ""
+  description = "Region name of the peer datacenter to federate with (e.g. us-west-2). Leave empty to skip federation."
 }
