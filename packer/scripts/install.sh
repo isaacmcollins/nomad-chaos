@@ -30,17 +30,6 @@ echo "Installing Tailscale..."
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo systemctl enable tailscaled
 
-echo "Building statuspage binary..."
-curl -fsSL https://go.dev/dl/go1.22.2.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -
-export PATH=$PATH:/usr/local/go/bin
-mkdir -p /tmp/statuspage-build
-cp -r /tmp/app/* /tmp/statuspage-build/ 2>/dev/null || true
-cd /tmp/statuspage-build
-CGO_ENABLED=0 go build -o /usr/local/bin/statuspage .
-chmod +x /usr/local/bin/statuspage
-cd /
-rm -rf /tmp/statuspage-build /usr/local/go
-
 echo "Cleaning up..."
 sudo apt-get clean
 sudo rm -rf /var/lib/apt/lists/*

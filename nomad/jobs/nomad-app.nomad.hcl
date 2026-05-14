@@ -1,5 +1,5 @@
 job "nomad-app" {
-  datacenters = ["us-east-1"]
+  datacenters = ["dc1"]
   type        = "service"
 
   group "web" {
@@ -32,6 +32,9 @@ job "nomad-app" {
     task "app" {
       driver = "docker"
 
+      env {
+        NOMAD_NODE_NAME = "${attr.unique.hostname}"
+      }
       config {
         image = "docker.io/isaaccollins/nomad-app:latest"
         ports = ["http"]

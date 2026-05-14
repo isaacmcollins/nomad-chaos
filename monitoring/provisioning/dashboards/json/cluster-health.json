@@ -9,13 +9,10 @@
         "iconColor": "red",
         "name": "Chaos Experiments",
         "type": "dashboard",
-        "filter": {
-          "exclude": false,
-          "ids": []
-        }
+        "filter": { "exclude": false, "ids": [] }
       },
       {
-        "datasource": { "type": "prometheus", "uid": "" },
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
         "enable": true,
         "expr": "",
         "hide": false,
@@ -23,7 +20,7 @@
         "name": "Chaos (Grafana API)",
         "type": "tags",
         "tags": ["chaos"],
-        "matchAny": false
+        "matchAny": true
       }
     ]
   },
@@ -33,70 +30,96 @@
   "links": [],
   "panels": [
     {
-      "title": "Nomad Running Allocations",
+      "title": "Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "title": "Running Allocations",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "targets": [
-        {
-          "expr": "nomad_nomad_allocs_running",
-          "legendFormat": "{{instance}}"
-        }
+        { "expr": "sum(nomad_client_allocations_running)", "legendFormat": "running" }
       ]
     },
     {
-      "title": "Nomad Blocked Evaluations",
+      "title": "Pending Allocations",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "targets": [
-        {
-          "expr": "nomad_nomad_blocked_evals_total_blocked",
-          "legendFormat": "blocked"
-        }
+        { "expr": "sum(nomad_client_allocations_pending)", "legendFormat": "pending" }
       ]
     },
     {
-      "title": "CPU Usage by Node",
+      "title": "Blocked Evaluations",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        { "expr": "nomad_nomad_blocked_evals_total_blocked", "legendFormat": "blocked" }
+      ]
+    },
+    {
+      "title": "Client Nodes",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        { "expr": "count(nomad_client_allocations_running)", "legendFormat": "nodes" }
+      ]
+    },
+    {
+      "title": "Allocation States",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
       "targets": [
-        {
-          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "{{instance}}"
-        }
+        { "expr": "sum(nomad_client_allocations_running)", "legendFormat": "running" },
+        { "expr": "sum(nomad_client_allocations_pending)", "legendFormat": "pending" },
+        { "expr": "sum(nomad_client_allocations_terminal)", "legendFormat": "terminal" },
+        { "expr": "sum(nomad_client_allocations_blocked)", "legendFormat": "blocked" }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100
+          "custom": { "fillOpacity": 10 }
         }
       }
     },
     {
-      "title": "Memory Usage by Node",
+      "title": "Scheduling Latency (avg)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
       "targets": [
         {
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-          "legendFormat": "{{instance}}"
+          "expr": "rate(nomad_nomad_worker_dequeue_eval_sum[5m]) / rate(nomad_nomad_worker_dequeue_eval_count[5m])",
+          "legendFormat": "avg eval dequeue time"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100
-        }
+        "defaults": { "unit": "ms" }
       }
+    },
+
+    {
+      "title": "Application",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "collapsed": false,
+      "panels": []
     },
     {
       "title": "Traefik Request Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "targets": [
         {
-          "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
+          "expr": "sum(rate(traefik_entrypoint_requests_total[1m])) by (entrypoint)",
           "legendFormat": "{{entrypoint}}"
         }
       ],
@@ -105,41 +128,109 @@
       }
     },
     {
-      "title": "Traefik Error Rate (4xx + 5xx)",
+      "title": "Traefik Error Rate (%)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "targets": [
         {
-          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"4..|5..\"}[5m])) by (code)",
-          "legendFormat": "{{code}}"
+          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[1m])) / sum(rate(traefik_entrypoint_requests_total[1m])) * 100",
+          "legendFormat": "5xx %"
+        },
+        {
+          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"4..\"}[1m])) / sum(rate(traefik_entrypoint_requests_total[1m])) * 100",
+          "legendFormat": "4xx %"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "reqps" }
+        "defaults": { "unit": "percent", "min": 0 }
       }
     },
     {
-      "title": "Consul Raft Leader Last Contact",
+      "title": "Traefik Request Latency",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
       "targets": [
         {
-          "expr": "consul_raft_leader_lastContact",
+          "expr": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[1m])) by (le, entrypoint))",
+          "legendFormat": "p99 {{entrypoint}}"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[1m])) by (le, entrypoint))",
+          "legendFormat": "p50 {{entrypoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+      }
+    },
+    {
+      "title": "Alloc CPU by Task",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "targets": [
+        {
+          "expr": "sum by (task) (nomad_client_allocs_cpu_total_percent)",
+          "legendFormat": "{{task}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0 }
+      }
+    },
+
+    {
+      "title": "Infrastructure",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "title": "CPU Usage by Node",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)",
           "legendFormat": "{{instance}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "ms" }
+        "defaults": { "unit": "percent", "min": 0, "max": 100 }
       }
     },
     {
-      "title": "Network Receive Bytes",
+      "title": "Memory Usage by Node",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
-          "legendFormat": "{{instance}} - {{device}}"
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100 }
+      }
+    },
+    {
+      "title": "Network I/O by Node",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+      "targets": [
+        {
+          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[1m])",
+          "legendFormat": "RX {{instance}} {{device}}"
+        },
+        {
+          "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[1m])",
+          "legendFormat": "TX {{instance}} {{device}}"
         }
       ],
       "fieldConfig": {
@@ -147,50 +238,95 @@
       }
     },
     {
-      "title": "Traefik Request Latency (p99)",
+      "title": "Alloc Memory by Task",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
-          "legendFormat": "p99 {{entrypoint}}"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
-          "legendFormat": "p50 {{entrypoint}}"
+          "expr": "sum by (task) (nomad_client_allocs_memory_rss)",
+          "legendFormat": "{{task}}"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": { "fillOpacity": 10 }
+        "defaults": { "unit": "bytes" }
+      }
+    },
+
+    {
+      "title": "Cluster Health",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "title": "Nomad Raft Commit Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "targets": [
+        {
+          "expr": "rate(nomad_raft_commitTime_sum[5m]) / rate(nomad_raft_commitTime_count[5m])",
+          "legendFormat": "avg commit time"
         }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
       }
     },
     {
-      "title": "Nomad Heartbeat Latency",
+      "title": "Nomad Raft Leader Dispatch Log",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
       "targets": [
         {
-          "expr": "nomad_nomad_heartbeat_active",
-          "legendFormat": "active heartbeats"
+          "expr": "rate(nomad_raft_leader_dispatchLog_sum[5m]) / rate(nomad_raft_leader_dispatchLog_count[5m])",
+          "legendFormat": "avg dispatch latency"
         },
         {
-          "expr": "nomad_nomad_rpc_request_error",
-          "legendFormat": "RPC errors"
+          "expr": "nomad_raft_leader_oldestLogAge",
+          "legendFormat": "oldest log age"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "custom": { "fillOpacity": 10 }
-        }
+        "defaults": { "unit": "ms" }
+      }
+    },
+    {
+      "title": "Nomad Heartbeats & RPC",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "targets": [
+        { "expr": "nomad_nomad_heartbeat_active", "legendFormat": "active heartbeats" },
+        { "expr": "rate(nomad_nomad_rpc_request[1m])", "legendFormat": "RPC req/s" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10 } }
       }
     }
   ],
   "schemaVersion": 39,
   "tags": ["nomad", "chaos"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Region",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      }
+    ]
+  },
   "time": { "from": "now-1h", "to": "now" },
   "title": "Nomad Chaos - Cluster Health",
   "uid": "nomad-chaos-health"

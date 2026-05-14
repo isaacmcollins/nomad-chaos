@@ -1,5 +1,5 @@
 job "node-exporter" {
-  datacenters = ["us-east-1"]
+  datacenters = ["dc1"]
   type        = "system"
 
   group "node-exporter" {

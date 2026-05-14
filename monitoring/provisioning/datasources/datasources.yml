@@ -1,20 +1,17 @@
 apiVersion: 1
 
 datasources:
-  # Grafana runs in the Tailscale sidecar's network namespace, so it can
-  # reach Tailscale IPs directly in proxy mode. No socat tunnel needed.
-  # Update the IP if the Nomad client running Prometheus changes:
-  #   tailscale status | grep nomad-client
   - name: Prometheus (us-east-1)
     type: prometheus
     access: proxy
-    url: http://100.127.124.51:9090
+    url: http://100.67.97.87:9090
     isDefault: true
     editable: true
 
-  # Uncomment when you add a second region:
-  # - name: Prometheus (eu-west-1)
-  #   type: prometheus
-  #   access: proxy
-  #   url: http://<EU_NOMAD_CLIENT_TAILSCALE_IP>:9090
-  #   editable: true
+  - name: Prometheus (us-west-2)
+    type: prometheus
+    access: proxy
+    url: http://100.100.50.99:9090
+    isDefault: false
+    editable: true
+

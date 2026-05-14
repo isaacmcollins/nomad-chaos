@@ -219,6 +219,46 @@ func makeAppRequest(verb, route string, params url.Values) error {
 	return nil
 }
 
+var loadRate int
+var loadDuration string
+
+var loadCmd = &cobra.Command{
+	Use:   "load",
+	Short: "Generate steady HTTP traffic against the app",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		duration, err := time.ParseDuration(loadDuration)
+		if err != nil {
+			return fmt.Errorf("invalid duration: %w", err)
+		}
+
+		fmt.Printf("Running load: rate=%d req/s duration=%s target=%s\n", loadRate, loadDuration, appURL)
+
+		interval := time.Second / time.Duration(loadRate)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		timeout := time.After(duration)
+
+		var total, errors int64
+
+		for {
+			select {
+			case <-ticker.C:
+				go func() {
+					err := makeAppRequest(http.MethodGet, "/api/health", nil)
+					if err != nil {
+						fmt.Printf("err: %v\n", err)
+						errors++
+					}
+					total++
+				}()
+			case <-timeout:
+				fmt.Printf("\nDone. total=%d errors=%d error_rate=%.1f%%\n", total, errors, float64(errors)/float64(max(total, 1))*100)
+				return nil
+			}
+		}
+	},
+}
+
 var spotNode string
 var spotRandom bool
 
@@ -254,6 +294,9 @@ func init() {
 	spotTerminateCmd.Flags().StringVar(&spotNode, "node", "", "Node name to terminate")
 	spotTerminateCmd.Flags().BoolVar(&spotRandom, "random", false, "Terminate a random client node")
 
-	runCmd.AddCommand(appFailCmd, appSlowCmd, killAllocCmd, killLoopCmd, spotTerminateCmd)
+	loadCmd.Flags().IntVar(&loadRate, "rate", 50, "Requests per second")
+	loadCmd.Flags().StringVar(&loadDuration, "duration", "5m", "Load duration")
+
+	runCmd.AddCommand(appFailCmd, appSlowCmd, killAllocCmd, killLoopCmd, spotTerminateCmd, loadCmd)
 	rootCmd.AddCommand(runCmd)
 }

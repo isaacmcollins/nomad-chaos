@@ -17,7 +17,8 @@ retry_join = ${consul_retry_join}
 EOF
 
 cat <<EOF > /etc/nomad.d/nomad.hcl
-datacenter = "${datacenter}"
+region     = "${datacenter}"
+datacenter = "dc1"
 name       = "$NODE_NAME"
 data_dir   = "/opt/nomad"
 bind_addr  = "$PRIVATE_IP"
@@ -29,14 +30,13 @@ addresses {
 server {
   enabled          = true
   bootstrap_expect = ${bootstrap_expect}
-}
 
 %{ if peer_datacenter != "" ~}
-server_join {
-  retry_join = ${nomad_wan_join}
-}
-
+  server_join {
+    retry_join = ${nomad_wan_join}
+  }
 %{ endif ~}
+}
 ui {
   enabled = true
 }

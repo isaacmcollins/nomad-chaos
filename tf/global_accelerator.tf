@@ -21,8 +21,9 @@ resource "aws_globalaccelerator_listener" "nomad_http" {
 resource "aws_globalaccelerator_endpoint_group" "nomad" {
   for_each = local.regional_clusters
 
-  listener_arn          = aws_globalaccelerator_listener.nomad_http.id
-  endpoint_group_region = each.key
+  listener_arn              = aws_globalaccelerator_listener.nomad_http.id
+  endpoint_group_region     = each.key
+  traffic_dial_percentage   = 50
 
   endpoint_configuration {
     endpoint_id                    = each.value.alb_arn

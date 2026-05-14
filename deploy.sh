@@ -6,6 +6,14 @@ JOBS_DIR="$SCRIPT_DIR/nomad/jobs"
 TF_DIR="$SCRIPT_DIR/tf"
 PACKER_DIR="$SCRIPT_DIR/packer"
 
+SKIP_PACKER=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-packer) SKIP_PACKER=true; shift ;;
+    *) die "Unknown option: $1" ;;
+  esac
+done
+
 NOMAD_PORT=4646
 NOMAD_READY_TIMEOUT=300 
 
@@ -73,19 +81,24 @@ deploy_jobs() {
 
 require terraform aws nomad curl tailscale python3 packer
 
-log "=== Packer: building AMI ==="
-cd "$PACKER_DIR"
-packer init .
-packer build -var 'regions=["us-east-1","us-west-2"]' .
+[[ -z "${TF_VAR_tailscale_key:-}" ]] && die "TF_VAR_tailscale_key is not set. Export a Tailscale auth key first: export TF_VAR_tailscale_key='tskey-auth-...'"
+
+if [[ "$SKIP_PACKER" == "false" ]]; then
+  log "=== Packer: building AMI ==="
+  export AWS_PROFILE=auto-refresh
+  cd "$PACKER_DIR"
+  packer init .
+  packer build -var 'regions=["us-east-1","us-west-2"]' .
+  unset AWS_PROFILE
+else
+  log "=== Skipping Packer AMI build (--skip-packer) ==="
+fi
 
 cd "$TF_DIR"
 terraform init -input=false
 terraform apply -input=false -auto-approve
 
 log "=== Discovering Nomad servers via Tailscale ==="
-
-log "Waiting 30s for instances to join Tailscale ..."
-sleep 30
 
 EAST_IP=$(nomad_server_ts_ip "us-east-1")
 WEST_IP=$(nomad_server_ts_ip "us-west-2")
@@ -105,6 +118,7 @@ wait_for_nomad "$WEST_ADDR"
 
 log "=== Deploying Nomad jobs ==="
 deploy_jobs "$EAST_ADDR" "us-east-1"
+deploy_jobs "$WEST_ADDR" "us-west-2"
 
 log ""
 log "=== Done ==="
