@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus (us-east-1)
+    type: prometheus
+    access: proxy
+    url: http://100.67.97.87:9090
+    isDefault: true
+    editable: true
+
+  - name: Prometheus (us-west-2)
+    type: prometheus
+    access: proxy
+    url: http://100.100.50.99:9090
+    isDefault: false
+    editable: true
+

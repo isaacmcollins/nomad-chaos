@@ -1,0 +1,40 @@
+# Terraform
+tf/.terraform/
+tf/.terraform.lock.hcl
+tf/terraform.tfstate
+tf/terraform.tfstate.backup
+tf/*.tfvars
+tf/*.tfvars.json
+
+# Go binaries
+app/app
+chaos/chaos
+*.exe
+
+# Go build cache
+**/vendor/
+
+# Packer
+packer/packer_cache/
+*.box
+
+# Nomad
+*.pid
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
